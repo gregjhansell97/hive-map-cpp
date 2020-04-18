@@ -1,9 +1,6 @@
-#ifndef HMAP_SIMULATION
-#define HMAP_SIMULATION
+#ifndef HMAP_MODULES_SIMULATION_COMMUNICATION_LOCAL_COMMUNICATOR
+#define HMAP_MODULES_SIMULATION_COMMUNICATION_LOCAL_COMMUNICATOR
 
-#include <hmap/modules/simulation/communication.h>
-
-#if 0
 #include <mutex>
 #include <vector>
 #include <queue>
@@ -14,7 +11,7 @@
 namespace hmap {
 namespace sim {
 
-class LocalCommunicator : hmap::interface::Communicator {
+class LocalCommunicator : public hmap::interface::Communicator {
 public:
     LocalCommunicator();
     ~LocalCommunicator();
@@ -49,6 +46,5 @@ private:
 
 } // sim
 } // hmap
-#endif
 
-#endif
+#endif // HMAP_MODULES_SIMULATION_COMMUNICATION_LOCAL_COMMUNICATOR

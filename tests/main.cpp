@@ -12,11 +12,28 @@ using std::cout;
 using std::endl;
 
 
-//using hmap::fixtures::FCommunicator;
+using hmap::interface::fixtures::FCommunicator;
+using hmap::interface::Communicator;
 using hmap::sim::LocalCommunicator;
 
 
+class FLocalCommunicator: public FCommunicator {
+    int timeout() { return 100; }
+    void pair(Communicator*& c1, Communicator*& c2) {
+        LocalCommunicator* lc1 = new LocalCommunicator();
+        LocalCommunicator* lc2 = new LocalCommunicator();
+        lc1->connect(*lc2);
+        lc2->connect(*lc1);
+        c1 = lc1;
+        c2 = lc2;
+    }
+};
+
+
 int main() {
+    FLocalCommunicator fixture;
+    fixture.test();
+
     LocalCommunicator c1;
     LocalCommunicator c2;
     c1.connect(c2);

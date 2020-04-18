@@ -1,7 +1,7 @@
 #ifndef HMAP_INTERFACE_H
 #define HMAP_INTERFACE_H
 
-#include <hmap/interface_modules/communication.h>
+#include <hmap/modules/interface/communication.h>
 
 #if 0
 namespace hmap {
