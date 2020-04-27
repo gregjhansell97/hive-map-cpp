@@ -8,8 +8,8 @@ namespace interface {
 
 class Communicator {
 public:
-    static const ssize_t error = -1;
-    static const ssize_t closed = -2;
+    static const ssize_t error = -1; // returned on error for send/recv
+    static const ssize_t closed = -2; // returned if closed during send/recv
     /**
      * Sends data to one or more communicators
      *
@@ -19,7 +19,9 @@ public:
      *     timeout: if send is blocking, how long should it wait to send
      *
      * Returns:
-     *     status value regarding the success of sending
+     *     status value regarding the success of sending, if less than zero
+     *     then either an error occurred (Communicator::error) or the
+     *     communicator closed during the send operation
      */
     virtual ssize_t send(
             const char* data, const size_t size, const int timeout) = 0;
@@ -28,17 +30,22 @@ public:
      * Receives bytes of data from another communicator
      *
      * Args: 
-     *     data: raw-bytes received (passed-by-reference)
+     *     data: raw-bytes received (pointer to a pointer), new memory is
+     *      is allocated (must be deleted) TODO change to a shared_ptr
      *     size: number of bytes received (passed-by-reference)
      *     timeout: blocks on receive
      *
      * Returns:
-     *     status value regarding success of sending
+     *     status value regarding success of sending. if zero then nothing was
+     *     received. If less than zero then either an error occurred
+     *     (Communicator::error) or the communicator closed during the recv
+     *     operation
      */
-    virtual ssize_t recv(char*& data, const int timeout) = 0;
+    virtual ssize_t recv(char** data, const int timeout) = 0;
 
     /**
-     * Idempotent method that ends send and recv capabilities
+     * Idempotent method that ends send and recv capabilities and wraps up any
+     * concurrency black magic going on
      */
     virtual void close() = 0;
 };
@@ -46,28 +53,36 @@ public:
 namespace fixtures {
 class FCommunicator {
 public:
-    virtual int timeout() = 0;
     /**
-     * To communicators capable of talking with each other
+     * Tests basic send and receive amongst several communicators
+     *
+     * Args:
+     *     connected: list of 2 or more communicators all able to directly
+     *         communicate with one another
+     *     isolated: list of 1 or more communicators that cannot communicate
+     *         with the connected communicators
      */
-    virtual void pair(Communicator*& c1, Communicator*& c2) = 0;
-    void test() {
-        Communicator* com1;
-        Communicator* com2;
-        this->pair(com1, com2); 
-        
+    void test_send_recv(
+            Communicator* connected, const size_t c_size,
+            Communicator* isolated, const size_t i_size, 
+            const int timeout=1) {
         const char* msg = "h";
-        com1->send(msg, 1, 0);
-
-        char* rcvd = nullptr;
-        assert(com2->recv(rcvd, this->timeout()) == 1);
-        assert(rcvd != nullptr);
-        assert(rcvd[0] == 'h');
-        
-
-        // clean up
-        delete com1;
-        delete com2;
+        // sends message of size 1 with 0 timeout to all 
+        connected[0]->send(msg, 1, 0);
+        for(size_t i = 1; i < c_size; ++i) {
+            char* rcvd = nullptr;
+            auto c = connected[i];
+            // receive data from a communicator in range
+            assert(c->recv(rcvd, timeout));
+            assert(rcvd != nullptr);
+            assert(rcvd[0] == 'h');
+            delete [] rcvd;
+        }
+        for(size_t i = 0; i < i_size; ++i) {
+            char* rcvd = nullptr;
+            assert(isolated[i]->recv(rcvd, 0) == 0);
+            assert(rcvd == nullptr);
+        }
     }
 };
 } // fixtures
